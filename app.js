@@ -94,28 +94,31 @@ function sendMessage() {
                 { "role": "system", "content": systemPrompt },
                 { "role": "user", "content": userText }
             ],
-            temperature: 0.7
+            temperature: 0.7,
+            // stream: true
         })
-    })
-    .then(response => response.json())
-    .then(data => {
-        // Extracting the bot's message from the nested structure
-        const botMessage = data.choices && data.choices.length > 0
-            ? data.choices[0].message.content // Correctly access the content field of the message object
-            : 'No response from bot';
-
-        addMessage('Pookie: ' + botMessage, 'bot'); // Display the bot's message correctly
-    })
-    .catch(error => {
+    }).then(response => {
+        const reader = response.body.getReader();
+        function read() {
+            reader.read().then(({done, value}) => {
+                if (done) {
+                    console.log('Stream finished.');
+                    return;
+                }
+                const textChunk = new TextDecoder().decode(value);
+                console.log(textChunk); // Or update the UI with this chunk
+                read(); // Read the next chunk
+            });
+        }
+        read();
+    }).catch(error => {
         console.error('Error:', error);
     });
+}
 // Function to add messages to the chat box
 function addMessage(text, sender) {
     const messageElement = document.createElement('div');
     messageElement.textContent = text;
     messageElement.className = sender;
     document.getElementById('messages').appendChild(messageElement);
-}
-
-
 }
