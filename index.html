@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pookie world</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="chat-container">
+        <header class="chat-header">
+            <h1>Pookie</h1>
+            <!-- Add more header content here if needed -->
+        </header>
+        <section class="chat-box" id="chatBox">
+            <div class="message" id="messages">
+                <!-- Messages will be displayed here -->
+            </div>
+        </section>
+        <div class="input-group chat-input-group">
+            <input type="text" id="userInput" class="form-input" placeholder="Say something...">
+            <button onclick="sendMessage()" class="btn-send">Send</button>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
