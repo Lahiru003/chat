@@ -5,14 +5,18 @@
     <title>Pookie world</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
+
 <body>
+    <script src="app.js"></script>
     <div class="chat-container">
         <header class="chat-header">
             <h1>Pookie</h1>
             <!-- Add more header content here if needed -->
         </header>
         <section class="chat-box" id="chatBox">
+            <h2 class="visually-hidden">Chat Messages</h2>
             <div class="message" id="messages">
                 <!-- Messages will be displayed here -->
             </div>
@@ -22,6 +26,6 @@
             <button onclick="sendMessage()" class="btn-send">Send</button>
         </div>
     </div>
-    <script src="app.js"></script>
+    
 </body>
 </html>
