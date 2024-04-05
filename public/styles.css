@@ -40,12 +40,11 @@ body {
 
 .user-message, .bot-message {
     color: white;
-    text-align: right;
 }
 
 .user-message {
     background-color: #3b4a58;
-
+    text-align: right;
 }
 
 .bot-message {
@@ -78,18 +77,28 @@ body {
     font-size: 1.5em; /* Larger text for button */
     border-radius: 5px;
 }
-
+.h2tag{
+    text-align: center;
+}
 .btn-send:hover {
     background-color: #0056b3;
 }
 
-/* Media query for mobile devices to increase text size */
+/* Media query for mobile devices to adjust text size */
 @media (max-width: 768px) {
-    .chat-header {
-        font-size: 2.5em; /* Even larger header text on mobile */
+    .chat-header, .message, .form-input, .btn-send {
+        font-size: 1.2em; /* Adjusted text size on mobile */
     }
 
-    .message, .form-input, .btn-send {
-        font-size: 2em; /* Increase text size to 2em on mobile devices */
+    .chat-box, .input-group {
+        padding: 5px; /* Reduced padding for mobile */
+    }
+
+    .message {
+        padding: 5px; /* Smaller padding for messages on mobile */
+    }
+
+    .form-input, .btn-send {
+        padding: 10px; /* Adjusted padding for input and button on mobile */
     }
 }

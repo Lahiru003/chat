@@ -8,14 +8,16 @@ WORKDIR /
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install express 
+RUN npm install 
 
 # Copy the rest of the application files
 COPY . .
 
-# Expose the 
+# Expose the application's port
 EXPOSE 3000
 
+# Use node with the --trace-warnings flag to show where the warning was created
+CMD ["node", "--trace-warnings", "node.js"]
 
-# Command to run your application
-CMD ["node", "node.js"]
+# Define environment variable
+ENV NODE_ENV=production

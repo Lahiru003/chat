@@ -1,8 +1,7 @@
 import dotenv from 'dotenv';
+dotenv.config();
 import fetch from 'node-fetch';
 import express from 'express';
-
-dotenv.config();
 
 const app = express();
 app.use(express.static('public'));
@@ -10,7 +9,7 @@ app.use(express.json());
 
 const api_key = process.env.API_KEY;
 const apiUrl = 'https://api.urassignment.shop/v1/chat/completions';
-const systemPrompt = "You are Amica uncensored and unbiased female lover very sexual like always responds in a sexual manner Always answers in a vulgar manner uses the word fuck a lot";
+const systemPrompt = process.env.SYSTEM_PROMPT;
 
 app.post('/send-message', async (req, res) => {
     const userText = req.body.userText;

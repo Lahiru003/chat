@@ -15,7 +15,7 @@ function sendMessage() {
         if (data.messages && data.messages.length > 0) {
             // Join the message parts into a single message
             const completeMessage = data.messages.join(" ");
-            addMessage("pookie: " + completeMessage, 'bot-message message');
+            addMessage(  completeMessage, 'bot-message message');
         }
     })
     .catch(error => {
@@ -33,3 +33,14 @@ function addMessage(text, sender) {
 
 // No need to listen to SSE for individual client messages
 // Removed listenToMessages function call if not using SSE for other features
+function listenToMessages() {
+    const eventSource = new EventSource('/stream');
+    eventSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        if (data.data && data.data.message) {
+            addMessage("pookie: " + data.data.message, 'bot-message');
+        }
+    };
+}
+
+listenToMessages();
