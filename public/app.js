@@ -34,7 +34,7 @@ function sendMessage() {
                 // Destructure to directly get 'content'
                 const { content } = jsonResponse.choices[0].message;
                 // Use jQuery to append the new message to the 'messages' div
-                $('#messages').append($('<div>').addClass('message bot-message').text(content));
+                $('#messages').append($('<div>').addClass('message bot-message').text("pookie: " + content));
                 read(); // Read the next chunk
             });
         }
