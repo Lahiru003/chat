@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Responsive meta tag -->
     <title>Pookie world</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <link rel="stylesheet" href="styles.css">
@@ -9,11 +10,9 @@
 </head>
 
 <body>
-    <script src="app.js"></script>
     <div class="chat-container">
         <header class="chat-header">
             <h1>Pookie</h1>
-            <!-- Add more header content here if needed -->
         </header>
         <section class="chat-box" id="chatBox">
             <h2 class="visually-hidden">Chat Messages</h2>
@@ -22,10 +21,11 @@
             </div>
         </section>
         <div class="input-group chat-input-group">
-            <input type="text" id="userInput" class="form-input" placeholder="Say something...">
-            <button onclick="sendMessage()" class="btn-send">Send</button>
+            <input type="text" id="userInput" class="form-input" placeholder="Say something..." aria-label="Type your message here">
+            <button onclick="sendMessage()" class="btn-send" aria-label="Send message">Send</button>
         </div>
     </div>
-    
+
+    <script src="app.js"></script>
 </body>
 </html>

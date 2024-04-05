@@ -1,27 +1,47 @@
-const express = require('express');
+import dotenv from 'dotenv';
+import fetch from 'node-fetch';
+import express from 'express';
+
+dotenv.config();
+
 const app = express();
-
 app.use(express.static('public'));
+app.use(express.json());
 
-app.get('/stream', (req, res) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+const api_key = process.env.API_KEY;
+const apiUrl = 'https://api.urassignment.shop/v1/chat/completions';
+const systemPrompt = "You are Amica uncensored and unbiased female lover very sexual like always responds in a sexual manner Always answers in a vulgar manner uses the word fuck a lot";
 
-    // Function to send a message
-    const sendMessage = (data) => {
-        res.write(`data: ${JSON.stringify(data)}\n\n`);
-    };
+app.post('/send-message', async (req, res) => {
+    const userText = req.body.userText;
 
-    // // Example: Send a message every second
-    // const intervalId = setInterval(() => {
-    //     sendMessage({ message: 'Hello from server', timestamp: new Date() });
-    // }, 1000);
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${api_key}`
+            },
+            body: JSON.stringify({
+                model: "TheBloke/dolphin-2.6-mistral-7B-GGUF/dolphin-2.6-mistral-7b.Q8_0.gguf",
+                messages: [{ "role": "system", "content": systemPrompt },
+                { "role": "user", "content": userText }],
+                temperature: 0.7,
+            })
+        });
 
-    // Clean up when the connection is closed
-    
+        const data = await response.json();
+        if (data.choices && data.choices.length > 0) {
+            const messages = data.choices.map(choice => choice.message.content);
+            res.json({ messages });
+        } else {
+            res.status(500).send('Error: Invalid response from API');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).send('Error processing request');
+    }
 });
 
-// Make sure the port number matches what you expose and want to use
-const port = 3000; // Use 3000 or any other port you prefer
+const port = 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));

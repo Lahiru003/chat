@@ -22,7 +22,7 @@ body {
     color: white;
     text-align: center;
     padding: 15px 0;
-    font-size: 2em; /* Increased size for readability */
+    font-size: 1.5em; /* Increased size for readability */
 }
 
 .chat-box {
@@ -44,7 +44,8 @@ body {
 }
 
 .user-message {
-    background-color: #007bff;
+    background-color: #3b4a58;
+
 }
 
 .bot-message {
