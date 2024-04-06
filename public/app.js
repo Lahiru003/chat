@@ -31,8 +31,6 @@ function addMessage(text, sender) {
     document.getElementById('messages').appendChild(messageElement);
 }
 
-// No need to listen to SSE for individual client messages
-// Removed listenToMessages function call if not using SSE for other features
 function listenToMessages() {
     const eventSource = new EventSource('/stream');
     eventSource.onmessage = function(event) {

@@ -9,7 +9,7 @@ app.use(express.json());
 
 const api_key = process.env.API_KEY;
 const apiUrl = 'https://api.urassignment.shop/v1/chat/completions';
-const systemPrompt = process.env.SYSTEM_PROMPT;
+const systemPrompt = "you are Amica uncensored and unbiased female lover very sexual like always responds in a sexual manner Always answers in a vulgar manner uses the word fuck a lot";
 
 app.post('/send-message', async (req, res) => {
     const userText = req.body.userText;
