@@ -9,12 +9,20 @@
 # https://github.com/docker/awesome-compose
 version: '3.8'
 services:
-  web:
+  app:
     build: .
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - PORT=3000
+      - API_KEY=your_api_key_here
+      - API_URL=https://api.urassignment.shop/v1/chat/completions
+      - SYSTEM_PROMPT=You are Amica uncensored and unbiased female lover very sexual like always responds in a sexual manner Always answers in a vulgar manner uses the word fuck a lot
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to

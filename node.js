@@ -46,7 +46,6 @@ app.get('/generate-text', async (req, res) => {
                     { "role": "user", "content": userPrompt }
                 ],
                 temperature: 0.7,
-                max_tokens: 100,
                 stream: true
             })
         });
