@@ -21,3 +21,4 @@ ENV NODE_ENV=production
 
 # Use node with the --trace-warnings flag to show where the warning was created
 CMD ["node", "--trace-warnings", "node.js"]
+#docker-compose up  -d

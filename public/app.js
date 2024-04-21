@@ -1,44 +1,83 @@
-function sendMessage() {
-    const userText = document.getElementById('userInput').value;
-    addMessage(userText, 'user-message message');
-    document.getElementById('userInput').value = ''; // Clear input field
 
-    fetch('/send-message', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ userText })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.messages && data.messages.length > 0) {
-            // Join the message parts into a single message
-            const completeMessage = data.messages.join(" ");
-            addMessage(  completeMessage, 'bot-message message');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
+// Ensure sendMessage is defined in the global scope
+window.sendMessage = function() {
+  const userText = userInput.value.trim();
+  if (!userText) {
+      alert("Please enter a message.");
+      return;
+  }
+
+  addMessage(userText, 'user-message');
+  userInput.value = ''; // Clear input field after sending the message
+
+  ensureSingleEventSource();
+  const eventSource = new EventSource(`/generate-text?prompt=${encodeURIComponent(userText)}`);
+  let botMessageContent = ""; // Buffer to accumulate bot's response
+  eventSource.onmessage = function(event) {
+    const messages = event.data.split('\n').filter(line => line.startsWith('data:'));
+    
+    messages.forEach(message => {
+      const jsonData = JSON.parse(message.slice(5));
+      if (jsonData && jsonData.choices && jsonData.choices.length > 0) {
+        jsonData.choices.forEach(choice => {
+          if (choice.delta && choice.delta.content) {
+            botMessageContent += choice.delta.content; // Accumulate response content
+          }
+        });
+      }
     });
+
+    updateBotMessage(botMessageContent); // Update or create the bot message element
+  };
+
+  eventSource.onend = function() {
+    // Optionally finalize any updates when stream ends
+    if (botMessageContent) {
+      updateBotMessage(botMessageContent, true); // Ensure final message is updated/displayed
+    }
+  };
+
+  eventSource.onerror = function(error) {
+    console.error('Stream error:', error);
+    eventSource.close(); // Close stream on error
+
+  };
+
+  window.currentEventSource = eventSource; // Track the current event source
+};
+
+function addMessage(text, senderClass) {
+  const messageElement = document.createElement('div');
+  messageElement.textContent = text;
+  messageElement.className = `${senderClass} message`;
+  messagesContainer.appendChild(messageElement);
+  // Optionally, scroll the container to the bottom
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
-
-function addMessage(text, sender) {
-    const messageElement = document.createElement('div');
-    messageElement.textContent = text;
-    messageElement.className = sender;
-    document.getElementById('messages').appendChild(messageElement);
+function ensureSingleEventSource() {
+  if (window.currentEventSource) {
+      window.currentEventSource.close();
+      window.currentEventSource = null;
+  }
 }
 
-function listenToMessages() {
-    const eventSource = new EventSource('/stream');
-    eventSource.onmessage = function(event) {
-        const data = JSON.parse(event.data);
-        if (data.data && data.data.message) {
-            addMessage("pookie: " + data.data.message, 'bot-message');
-        }
-    };
-}
+document.addEventListener("DOMContentLoaded", function() {
+  window.userInput = document.getElementById("userInput");
+  const sendButton = document.querySelector(".btn-send");
+  window.messagesContainer = document.getElementById("messages");
 
-listenToMessages();
+  // Attach the event listener in JavaScript, instead of using inline HTML
+  sendButton.addEventListener("click", sendMessage);
+});
+
+function updateBotMessage(text, finalize = false) {
+  let botMessageElement = document.querySelector('.bot-message:last-child');
+  if (!botMessageElement || finalize) {
+    botMessageElement = document.createElement('div');
+    botMessageElement.className = 'bot-message message';
+    messagesContainer.appendChild(botMessageElement);
+  }
+  botMessageElement.textContent = text;
+  messagesContainer.scrollTop = messagesContainer.scrollHeight; // Scroll to the bottom
+}

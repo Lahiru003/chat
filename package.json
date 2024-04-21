@@ -1,18 +1,18 @@
 {
   "dependencies": {
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^2.7.0"
   },
   "name": "chatapp",
   "version": "1.0.0",
   "type": "module",
   "main": "chat.js",
-
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "When you're ready, start your application by running:\r `docker compose up --build`."
 }

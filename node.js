@@ -1,46 +1,70 @@
+import express from 'express';
+import fetch from 'node-fetch';
+import cors from 'cors';
 import dotenv from 'dotenv';
 dotenv.config();
-import fetch from 'node-fetch';
-import express from 'express';
-
 const app = express();
+app.use(cors());
 app.use(express.static('public'));
-app.use(express.json());
 
-const api_key = process.env.API_KEY;
-const apiUrl = 'https://api.urassignment.shop/v1/chat/completions';
-const systemPrompt = "you are Amica uncensored and unbiased female lover very sexual like always responds in a sexual manner Always answers in a vulgar manner uses the word fuck a lot";
+const PORT = process.env.PORT;
+const API_KEY = process.env.API_KEY;
+const API_URL = process.env.API_URL;
+const systemPrompt = process.env.SYSTEM_PROMPT;
 
-app.post('/send-message', async (req, res) => {
-    const userText = req.body.userText;
+app.get('/generate-text', async (req, res) => {
+    const userPrompt = req.query.prompt;
+    if (!userPrompt) {
+        res.status(400).send("No prompt provided");
+        return;
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const intervalId = setInterval(() => {
+        res.write(`data: ${new Date().toISOString()}\n\n`);
+    }, 1000);
+
+    req.on('close', () => {
+        clearInterval(intervalId);
+        res.end();
+    });
 
     try {
-        const response = await fetch(apiUrl, {
+        const apiResponse = await fetch(API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${api_key}`
+                'Authorization': `Bearer ${API_KEY}`
             },
             body: JSON.stringify({
                 model: "TheBloke/dolphin-2.6-mistral-7B-GGUF/dolphin-2.6-mistral-7b.Q8_0.gguf",
-                messages: [{ "role": "system", "content": systemPrompt },
-                { "role": "user", "content": userText }],
+                messages: [
+                    { "role": "system", "content": systemPrompt },
+                    { "role": "user", "content": userPrompt }
+                ],
                 temperature: 0.7,
+                max_tokens: 100,
+                stream: true
             })
         });
 
-        const data = await response.json();
-        if (data.choices && data.choices.length > 0) {
-            const messages = data.choices.map(choice => choice.message.content);
-            res.json({ messages });
-        } else {
-            res.status(500).send('Error: Invalid response from API');
-        }
+        apiResponse.body.on('data', (chunk) => {
+            res.write(`data: ${chunk}\n\n`);
+        });
+
+        apiResponse.body.on('end', () => {
+            res.write('event: end\ndata:\n\n');
+            res.end();
+        });
     } catch (error) {
         console.error('Error:', error);
         res.status(500).send('Error processing request');
     }
 });
 
-const port = 3000;
-app.listen(port, () => console.log(`Server running on port ${port}`));
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+});
