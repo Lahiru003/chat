@@ -15,6 +15,7 @@ body {
     overflow: hidden;
     background-color: #555;
     border: none;
+    transition: background-color 0.3s ease; /* Add transition for smooth background change */
 }
 
 .chat-header {
@@ -36,6 +37,7 @@ body {
     padding: 10px;
     border-radius: 5px;
     font-size: 1.5em; /* Larger text for messages */
+    line-height: 1.6; /* Improved readability with line height */
 }
 
 .user-message, .bot-message {
@@ -52,10 +54,25 @@ body {
     text-align: left;
 }
 
+.message code {
+    background: #1e1e1e;/*openai like format*/
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+.message pre {
+    background: #1e1e1e; 
+    padding: 10px;
+    border-radius: 5px;
+    overflow: auto;
+    color: #f8f8f2; 
+}
+
 .input-group {
     background-color: #333;
     padding: 10px;
     display: flex;
+    border-top: 1px solid #444; /* Added border to separate input group */
 }
 
 .form-input {
@@ -69,6 +86,37 @@ body {
     border-radius: 5px;
 }
 
+.btn-mic {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    outline: none;
+}
+
+.btn-mic img {
+    height: 20px;
+    transition: filter 0.3s, box-shadow 0.3s; /* Smooth transition for glow effect */
+}
+
+.btn-mic.recording img {
+    filter: none;
+    box-shadow: 0 0 10px 5px rgba(255, 0, 0, 0.7); /* Red Glow effect */
+}
+
+.chat-container.recording {
+    background-color: #777;
+}
+
+.btn-stop {
+    padding: 15px 14px;
+    background-color:#f6f6f6 ;
+    color: white;
+    border: none;
+    font-size: 1.5em; /* Larger text for button */
+    border-radius: 5px;
+    cursor: pointer;
+}
+
 .btn-send {
     padding: 15px 20px;
     background-color: #007bff;
@@ -76,12 +124,46 @@ body {
     border: none;
     font-size: 1.5em; /* Larger text for button */
     border-radius: 5px;
+    cursor: pointer;
 }
-.h2tag{
+
+.h2tag {
     text-align: center;
 }
+
+.btn-stop:hover {
+    background-color:#7c7c7c ;
+}
+
 .btn-send:hover {
     background-color: #0056b3;
+}
+
+.btn-send:disabled {
+    background-color: #0056b3; /* Background color when disabled */
+    cursor: not-allowed; /* Change cursor to not-allowed when disabled */
+}
+
+/* Recording disabled message */
+#recording-disabled-message {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 1.2em;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    animation: fadeInOut 3s ease-in-out;
+}
+
+@keyframes fadeInOut {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
 }
 
 /* Media query for mobile devices to adjust text size */
