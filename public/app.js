@@ -1,7 +1,7 @@
-const status = document.getElementById('status');
 const micButton = document.querySelector('.btn-mic');
 const sendButton = document.querySelector('.btn-send');
 const stopButton = document.querySelector('.btn-stop');
+const speakerButton = document.querySelector('.btn-speaker');
 const userInput = document.getElementById('userInput');
 const messagesContainer = document.getElementById('messages');
 const chatContainer = document.querySelector('.chat-container');
@@ -14,62 +14,126 @@ let mediaRecorder;
 let audioChunks = [];
 let isRecording = false;
 let isGenerating = false;
+let transcriptionTimeout;
+let stream;
+let speechQueue = [];
 
-navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const source = audioContext.createMediaStreamSource(stream);
+// Function to start recording
+async function startRecording() {
+    if (!stream) {
+        try {
+            console.log('Requesting microphone access...');
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            console.log('Microphone access granted.');
 
-    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioContext.createMediaStreamSource(stream);
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
 
-    mediaRecorder.ondataavailable = event => {
-        audioChunks.push(event.data);
-    };
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
 
-    mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const audioURL = URL.createObjectURL(audioBlob);
+            mediaRecorder.onstop = async () => {
+                try {
+                    console.log('Processing recorded audio...');
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    console.log('Recorded Audio Blob:', audioBlob);
 
-        const arrayBuffer = await audioBlob.arrayBuffer();
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    const arrayBuffer = await audioBlob.arrayBuffer();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-        const resampledBuffer = await resampleAudioBuffer(audioBuffer, 16000);
-        const wavBlob = encodeWAV(resampledBuffer, 16000);
-        const wavURL = URL.createObjectURL(wavBlob);
+                    const resampledBuffer = await resampleAudioBuffer(audioBuffer, 16000);
+                    const wavBlob = encodeWAV(resampledBuffer, 16000);
+                    console.log('WAV Audio Blob:', wavBlob);
 
-        const file = new File([wavBlob], 'recording.wav', { type: 'audio/wav' });
+                    const file = new File([wavBlob], 'recording.wav', { type: 'audio/wav' });
+                    console.log('File:', file);
 
-        // Upload to server and set up EventSource for streaming responses
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('temperature', '0.0');
-        formData.append('temperature_inc', '0.2');
-        formData.append('response_format', 'verbose_json');
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('temperature', '0.0');
+                    formData.append('temperature_inc', '0.2');
+                    formData.append('response_format', 'verbose_json');
 
-        const response = await fetch('http://127.0.0.1:8080/inference', {
-            method: 'POST',
-            body: formData,
-        });
+                    for (const pair of formData.entries()) {
+                        console.log(`${pair[0]}: ${pair[1]}`);
+                    }
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+                    const response = await fetch('https://apistt.urassignment.shop/inference', {
+                        method: 'POST',
+                        body: formData,
+                    });
 
-        let transcriptionText = "";
+                    if (!response.ok) {
+                        console.error('Network response was not ok', response.statusText);
+                        return;
+                    }
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const text = decoder.decode(value, { stream: true });
-            const json = JSON.parse(text);
-            transcriptionText += appendTranscription(json);
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+
+                    let transcriptionText = "";
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const text = decoder.decode(value, { stream: true });
+                        console.log('Server response:', text); // Log the server response for debugging
+                        const json = JSON.parse(text);
+                        transcriptionText += appendTranscription(json);
+                    }
+
+                    console.log('Transcription text:', transcriptionText); // Log the transcription text for debugging
+                    if (transcriptionText.trim()) {
+                        sendMessage(transcriptionText); // Automatically send the message after transcription
+                    } else {
+                        console.warn('Transcription was empty.');
+                    }
+                    audioChunks = []; // Clear the audio chunks after processing
+                } catch (error) {
+                    console.error('Error processing audio:', error);
+                }
+            };
+        } catch (error) {
+            console.error('Error accessing microphone:', error);
+            alert('Error accessing microphone: ' + error.message);
+            return;
         }
+    }
 
-        sendMessage(transcriptionText);  // Automatically send the message after transcription
-        audioChunks = []; // Clear the audio chunks after processing
-    };
-}).catch(error => {
-    console.error('Error accessing microphone:', error);
-    status.textContent = `Error accessing microphone: ${error.message}`;
-});
+    if (mediaRecorder && mediaRecorder.state === 'inactive') {
+        try {
+            audioChunks = [];
+            mediaRecorder.start();
+            isRecording = true;
+            micButton.classList.add('recording'); // Add a class to indicate recording state
+            chatContainer.classList.add('recording'); // Change background color to indicate recording
+            showRecordingWarning();
+            statusUpdate('Recording...');
+        } catch (error) {
+            console.error('Error starting the recording:', error);
+            alert('Error starting the recording: ' + error.message);
+        }
+    }
+}
+
+// Function to stop recording
+function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        try {
+            mediaRecorder.stop();
+            isRecording = false;
+            micButton.classList.remove('recording'); // Remove the recording state class
+            chatContainer.classList.remove('recording'); // Revert background color
+            hideRecordingWarning();
+            statusUpdate('Processing...');
+        } catch (error) {
+            console.error('Error stopping the recording:', error);
+            alert('Error stopping the recording: ' + error.message);
+        }
+    }
+}
 
 micButton.addEventListener('click', () => {
     if (isGenerating) {
@@ -107,26 +171,7 @@ sendButton.addEventListener('click', () => {
     }
 });
 
-function startRecording() {
-    if (mediaRecorder && mediaRecorder.state === 'inactive') {
-        audioChunks = [];
-        mediaRecorder.start();
-        isRecording = true;
-        status.textContent = 'Recording...';
-        micButton.classList.add('recording'); // Add a class to indicate recording state
-        chatContainer.classList.add('recording'); // Change background color to indicate recording
-    }
-}
-
-function stopRecording() {
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-        isRecording = false;
-        status.textContent = 'Processing...';
-        micButton.classList.remove('recording'); // Remove the recording state class
-        chatContainer.classList.remove('recording'); // Revert background color
-    }
-}
+speakerButton.addEventListener('click', toggleTTS); // Add event listener for speaker button
 
 function appendTranscription(data) {
     let transcriptionText = '';
@@ -159,49 +204,25 @@ function encodeWAV(audioBuffer, sampleRate) {
     const length = audioBuffer.length * numberOfChannels * 2 + 44;
     const buffer = new ArrayBuffer(length);
     const view = new DataView(buffer);
-    const channels = [];
-    let offset = 0;
-    let pos = 0;
 
-    function writeString(view, offset, string) {
-        for (let i = 0; i < string.length; i++) {
-            view.setUint8(offset + i, string.charCodeAt(i));
-        }
-    }
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + audioBuffer.length * numberOfChannels * 2, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numberOfChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * numberOfChannels * 2, true);
+    view.setUint16(32, numberOfChannels * 2, true);
+    view.setUint16(34, 16, true);
+    writeString(view, 36, 'data');
+    view.setUint32(40, audioBuffer.length * numberOfChannels * 2, true);
 
-    // RIFF identifier
-    writeString(view, offset, 'RIFF'); offset += 4;
-    // RIFF chunk length
-    view.setUint32(offset, 36 + audioBuffer.length * 2, true); offset += 4;
-    // WAVE identifier
-    writeString(view, offset, 'WAVE'); offset += 4;
-    // fmt sub-chunk
-    writeString(view, offset, 'fmt '); offset += 4;
-    // fmt chunk length
-    view.setUint32(offset, 16, true); offset += 4;
-    // Audio format (PCM)
-    view.setUint16(offset, 1, true); offset += 2;
-    // Number of channels
-    view.setUint16(offset, numberOfChannels, true); offset += 2;
-    // Sample rate
-    view.setUint32(offset, sampleRate, true); offset += 4;
-    // Byte rate (sample rate * block align)
-    view.setUint32(offset, sampleRate * numberOfChannels * 2, true); offset += 4;
-    // Block align (channel count * bytes per sample)
-    view.setUint16(offset, numberOfChannels * 2, true); offset += 2;
-    // Bits per sample
-    view.setUint16(offset, 16, true); offset += 2;
-    // data sub-chunk
-    writeString(view, offset, 'data'); offset += 4;
-    // Data chunk length
-    view.setUint32(offset, audioBuffer.length * numberOfChannels * 2, true); offset += 4;
-
-    // Write the PCM samples
+    let offset = 44;
     for (let i = 0; i < audioBuffer.length; i++) {
         for (let channel = 0; channel < numberOfChannels; channel++) {
-            // Convert the float sample to PCM and write it to the buffer
-            let sample = audioBuffer.getChannelData(channel)[i];
-            sample = Math.max(-1, Math.min(1, sample));
+            const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(channel)[i]));
             view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
             offset += 2;
         }
@@ -210,13 +231,18 @@ function encodeWAV(audioBuffer, sampleRate) {
     return new Blob([buffer], { type: 'audio/wav' });
 }
 
-window.sendMessage = function(userText) {
+function writeString(view, offset, string) {
+    for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+    }
+}
+
+function sendMessage(userText) {
     if (!userText) {
         alert("Please enter a message.");
         return;
     }
 
-    // Disable the send button
     sendButton.disabled = true;
     isGenerating = true;
     disableRecording();
@@ -236,6 +262,7 @@ window.sendMessage = function(userText) {
                 jsonData.choices.forEach(choice => {
                     if (choice.delta && choice.delta.content) {
                         botMessageContent += choice.delta.content; 
+                        handleTTS(choice.delta.content); // Handle TTS for the streamed text
                     }
                 });
             }
@@ -262,26 +289,24 @@ window.sendMessage = function(userText) {
     };
 
     window.currentEventSource = eventSource; // Track the current event source
-};
+}
 
-window.stopGeneration = function() {
+function stopGeneration() {
     if (window.currentEventSource) {
         window.currentEventSource.close(); // Close the EventSource
         window.currentEventSource = null;
 
-        // Re-enable the send button when generation is stopped
         sendButton.disabled = false;
         isGenerating = false;
         enableRecording();
     }
-};
+}
 
 function addMessage(text, senderClass) {
     const messageElement = document.createElement('div');
     messageElement.textContent = text;
     messageElement.className = `${senderClass} message`;
     messagesContainer.appendChild(messageElement);
-    // Optionally, scroll the container to the bottom
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
@@ -293,19 +318,15 @@ function ensureSingleEventSource() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    const stopButton = document.querySelector(".btn-stop");
-
-    // Attach the event listener in JavaScript, instead of using inline HTML
     stopButton.addEventListener("click", stopGeneration);
 
-    // Add key listener for Enter key
     userInput.addEventListener("keypress", function(event) {
         if (event.key === "Enter") {
-            event.preventDefault(); // Prevent the default action (form submission, if inside a form)
+            event.preventDefault();
             const userText = userInput.value.trim();
             if (userText) {
-                sendMessage(userText); // Pass the user input to sendMessage function
-                userInput.value = ''; // Clear the input field
+                sendMessage(userText);
+                userInput.value = '';
             }
         }
     });
@@ -318,8 +339,8 @@ function updateBotMessage(text, finalize = false) {
         botMessageElement.className = 'bot-message message';
         messagesContainer.appendChild(botMessageElement);
     }
-    botMessageElement.innerHTML = marked.parse(text); // Use marked to convert Markdown to HTML
-    messagesContainer.scrollTop = messagesContainer.scrollHeight; // Scroll to the bottom
+    botMessageElement.innerHTML = marked.parse(text);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
 function disableRecording() {
@@ -335,4 +356,88 @@ function showRecordingDisabledMessage() {
     setTimeout(() => {
         recordingDisabledMessage.style.display = 'none';
     }, 3000);
+}
+
+function statusUpdate(message) {
+    console.log(message);
+}
+
+function showRecordingWarning() {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        console.log('Microphone access granted.');
+    }
+}
+
+function hideRecordingWarning() {
+    console.log('Microphone access revoked.');
+}
+
+function scheduleTranscriptionProcessing() {
+    if (transcriptionTimeout) {
+        clearTimeout(transcriptionTimeout);
+    }
+    transcriptionTimeout = setTimeout(() => {
+        if (audioChunks.length > 0 && !isRecording) {
+            mediaRecorder.stop();
+        }
+    }, 2000); // Adjust the timeout duration as needed
+}
+
+// Function to handle TTS for streamed text
+async function handleTTS(text) {
+    if (text.trim() === "") return;
+
+    const payload = {
+        text: text,
+        speaker_id: "p250",
+        style_wav: "",
+        language_id: ""
+    };
+
+    console.log('TTS Payload:', JSON.stringify(payload)); // Log the payload for debugging
+
+    const response = await fetch('https://apitts.urassignment.shop/api/tts', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        console.error('TTS API error:', response.statusText);
+        return;
+    }
+
+    const audioBlob = await response.blob();
+    speechQueue.push(audioBlob);
+    if (speechQueue.length === 1) {
+        playNextSpeech();
+    }
+}
+
+// Function to play the next speech in the queue
+function playNextSpeech() {
+    if (speechQueue.length === 0) return;
+
+    const audioBlob = speechQueue.shift();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+
+    audio.onended = function() {
+        playNextSpeech(); // Play the next speech in the queue when the current one ends
+    };
+
+    audio.play();
+}
+
+// Function to toggle TTS
+function toggleTTS() {
+    const isTTSOn = speakerButton.classList.toggle('tts-on');
+    if (isTTSOn) {
+        console.log("TTS enabled");
+    } else {
+        console.log("TTS disabled");
+        speechQueue = []; // Clear the queue if TTS is turned off
+    }
 }

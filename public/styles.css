@@ -95,17 +95,21 @@ body {
 
 .btn-mic img {
     height: 20px;
-    transition: filter 0.3s, box-shadow 0.3s; /* Smooth transition for glow effect */
-}
+    transition: filter 0.3s, box-shadow 0.3s;
+
+     transition: filter 0.3s, box-shadow 0.3s;
+     border: none;
+     border-radius: 5px;
+ }
 
 .btn-mic.recording img {
     filter: none;
     box-shadow: 0 0 10px 5px rgba(255, 0, 0, 0.7); /* Red Glow effect */
 }
-
+/* 
 .chat-container.recording {
     background-color: #777;
-}
+} */
 
 .btn-stop {
     padding: 15px 14px;
@@ -134,7 +138,9 @@ body {
 .btn-stop:hover {
     background-color:#7c7c7c ;
 }
-
+.btn-mic:hover {
+    background-color:#7c7c7c ;
+}
 .btn-send:hover {
     background-color: #0056b3;
 }
@@ -182,5 +188,38 @@ body {
 
     .form-input, .btn-send {
         padding: 10px; /* Adjusted padding for input and button on mobile */
+    }
+}
+.mic-container {
+    position: relative;
+    display: inline-block;
+}
+
+.mic-animation {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    pointer-events: none;
+    transform: scale(0);
+    transition: transform 0.1s;
+}
+
+.btn-mic.recording .mic-animation {
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.9);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(0.9);
     }
 }
